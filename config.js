@@ -1,0 +1,12 @@
+"use strict";
+exports.__esModule = true;
+exports.repositories = exports.modelsPath = exports.controllersPath = exports.unitPath = exports.integrationPath = exports.acceptancePath = exports.testsFolderPath = exports.project = void 0;
+exports.project = "Test Project";
+// export const testsFolderPath="../src/__tests__/__tests__/";
+exports.testsFolderPath = "tests/";
+exports.acceptancePath = "acceptance";
+exports.integrationPath = "integration";
+exports.unitPath = "unit";
+exports.controllersPath = "src/controllers";
+exports.modelsPath = "src/models";
+exports.repositories = "src/repositories";
