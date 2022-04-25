@@ -36,32 +36,28 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 exports.__esModule = true;
-exports.runner = exports.updater = exports.builder = exports.cleaner = exports.Greeter = exports.exec = void 0;
+exports.runner = exports.updater = exports.builder = exports.cleaner = void 0;
 var fs = require("fs");
 var config = require("../config");
+var helper = require("../helper");
 var execSync = require("child_process");
 var callback = function (err) {
     if (err) {
         return console.error(err);
     }
-    console.log("Success!");
 };
 var exec = function (command) {
     var value = execSync.execSync(command, { encoding: 'utf-8' });
     return value;
 };
-exports.exec = exec;
-var Greeter = function (name) { return "Hello ".concat(name, "."); };
-exports.Greeter = Greeter;
-// cleaner is working
 var cleaner = function () { return __awaiter(void 0, void 0, void 0, function () {
     return __generator(this, function (_a) {
-        /*
-          clears all tests folder
-        */
+        /* clears all test folders */
         fs.rmdirSync(config.testsFolderPath, { recursive: true });
-        // fs.mkdirSync(path.join(__dirname, config.testsFolderPath));
         fs.mkdirSync(config.testsFolderPath);
+        fs.mkdirSync("".concat(config.testsFolderPath, "/").concat(config.acceptancePath));
+        fs.mkdirSync("".concat(config.testsFolderPath, "/").concat(config.integrationPath));
+        fs.mkdirSync("".concat(config.testsFolderPath, "/").concat(config.unitPath));
         return [2 /*return*/];
     });
 }); };
@@ -78,48 +74,70 @@ var builder = function () {
         6. deletes models data on after
         7. writes tests
     */
-    // let's break things apart
-    // 1st lets try to create the basic test file using:
-    // - controller name; - test to write; - model to check; - repositories to check;
-    var controller = 'todo';
-    var newTest = "\
-  import { Greeter } from '../src/index';\r\n\n\
-  test('My Greeter', () => {\r\n\
-    expect(Greeter('Carl')).toBe('Hello Carl');\r\n\
-  });";
-    var createFile = function () { return __awaiter(void 0, void 0, void 0, function () {
+    var controllers = fs.readdirSync(config.controllersPath);
+    var createTestFiles = function (controller, info) { return __awaiter(void 0, void 0, void 0, function () {
+        var test;
         return __generator(this, function (_a) {
-            fs.writeFile("".concat(config.testsFolderPath, "/").concat(controller, ".acceptance.ts"), newTest, callback);
+            test = controller.substring(0, controller.indexOf('.'));
+            /* writes acceptance test file */
+            fs.writeFile("".concat(config.testsFolderPath, "/").concat(config.acceptancePath, "/").concat(test, ".acceptance.ts"), info, callback);
+            /* writes integration test file */
+            fs.writeFile("".concat(config.testsFolderPath, "/").concat(config.integrationPath, "/").concat(test, ".integration.ts"), info, callback);
+            /* writes unit test file */
+            fs.writeFile("".concat(config.testsFolderPath, "/").concat(config.unitPath, "/").concat(test, ".unit.ts"), info, callback);
             return [2 /*return*/];
         });
     }); };
-    /////////////////
-    createFile();
+    var _loop_1 = function (controller) {
+        console.log("Creating tests for: ", controller);
+        // readFile for http requests
+        var file = fs.readFileSync("".concat(config.controllersPath, "/").concat(controller), "utf-8");
+        var lines = file.split("\n");
+        // creates array of objects, "requests", with "call" and "route" properties
+        var requests = [];
+        for (var _a = 0, lines_1 = lines; _a < lines_1.length; _a++) {
+            var line = lines_1[_a];
+            if (line.includes("@get") || line.includes("@post") || line.includes("@patch") || line.includes("@put") || line.includes("@del")) {
+                var request = {
+                    call: line.split(/[\@\(]/)[1],
+                    route: line.split(/[\'\']/)[1]
+                };
+                requests.push(request);
+            }
+        }
+        console.log("Requests in file: ", requests);
+        // 4th creates tests based on request values of array requests
+        // builds test files
+        var controllerName = controller.substring(0, controller.indexOf('.'));
+        var tests = '';
+        requests.forEach(function (request) {
+            var _tests = helper.tests(request.call, request.route);
+            _tests.forEach(function (test) {
+                tests = tests.concat(test.toString());
+            });
+        });
+        var testFile = helper.fileBuild(controllerName, tests);
+        createTestFiles(controller, testFile);
+    };
+    for (var _i = 0, controllers_1 = controllers; _i < controllers_1.length; _i++) {
+        var controller = controllers_1[_i];
+        _loop_1(controller);
+    }
     return;
 };
 exports.builder = builder;
 var updater = function () {
-    /*
-      recreates test files on "__tests__" folder based on controllers
-    */
+    /* recreates test files on "__tests__" folder based on controllers */
     (0, exports.cleaner)();
     (0, exports.builder)();
-    return "All test files have been recreated.";
+    return;
 };
 exports.updater = updater;
 var runner = function () {
-    /*
-      runs tests
-    */
-    (0, exports.exec)('npm test');
+    /* runs tests */
+    exec('npm test');
     return;
 };
 exports.runner = runner;
-// const greetings = Greeter("Pedro");
-// console.log(greetings);
-// const folder = exec('pwd');
-// console.log("Current folder: "+folder);
-// const output = exec('ls');
-// console.log("Folder files: ", output);
+// testing the file
 var isIt = (0, exports.updater)();
-// runner();

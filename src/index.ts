@@ -1,30 +1,27 @@
 import fs = require('fs');
 import path = require('path');
 import config = require('../config');
+import helper = require('../helper');
 import execSync = require('child_process');
 
 const callback = function (err: any) {
   if (err) {
     return console.error(err);
   }
-  console.log("Success!");
 }
 
-export const exec = (command: string) => {
+const exec = (command: string) => {
   const value = execSync.execSync(command, { encoding: 'utf-8' });
   return value;
 }
 
-export const Greeter = (name: string) => `Hello ${name}.`;
-
-// cleaner is working
 export const cleaner = async () => {
-  /*
-    clears all tests folder
-  */
+  /* clears all test folders */
   fs.rmdirSync(config.testsFolderPath, { recursive: true });
-  // fs.mkdirSync(path.join(__dirname, config.testsFolderPath));
   fs.mkdirSync(config.testsFolderPath);
+  fs.mkdirSync(`${config.testsFolderPath}/${config.acceptancePath}`);
+  fs.mkdirSync(`${config.testsFolderPath}/${config.integrationPath}`);
+  fs.mkdirSync(`${config.testsFolderPath}/${config.unitPath}`);
   return;
 }
 
@@ -40,51 +37,70 @@ export const builder = () => {
       6. deletes models data on after
       7. writes tests
   */
+  const controllers = fs.readdirSync(config.controllersPath);
 
-  // let's break things apart
-  // 1st lets try to create the basic test file using:
-  // - controller name; - test to write; - model to check; - repositories to check;
-  let controller = 'todo';
-  let newTest = "\
-  import { Greeter } from '../src/index';\r\n\n\
-  test('My Greeter', () => {\r\n\
-    expect(Greeter('Carl')).toBe('Hello Carl');\r\n\
-  });";
-  const createFile = async () => {
-    fs.writeFile(`${config.testsFolderPath}/${controller}.acceptance.ts`, newTest, callback);
+  const createTestFiles = async (controller: string, info: string) => {
+    const test = controller.substring(0, controller.indexOf('.'));
+    /* writes acceptance test file */
+    fs.writeFile(`${config.testsFolderPath}/${config.acceptancePath}/${test}.acceptance.ts`, info, callback);
+    /* writes integration test file */
+    fs.writeFile(`${config.testsFolderPath}/${config.integrationPath}/${test}.integration.ts`, info, callback);
+    /* writes unit test file */
+    fs.writeFile(`${config.testsFolderPath}/${config.unitPath}/${test}.unit.ts`, info, callback);
   }
-  /////////////////
 
-  createFile();
+  for (const controller of controllers) {
+    console.log("Creating tests for: ", controller);
+
+    // readFile for http requests
+    const file = fs.readFileSync(`${config.controllersPath}/${controller}`, "utf-8");
+    const lines = file.split("\n");
+
+    // creates array of objects, "requests", with "call" and "route" properties
+    let requests = [];
+    for (let line of lines) {
+      if (line.includes("@get") || line.includes("@post") || line.includes("@patch") || line.includes("@put") || line.includes("@del")) {
+        const request = {
+          call: line.split(/[\@\(]/)[1],
+          route: line.split(/[\'\']/)[1]
+        }
+        requests.push(request);
+      }
+    }
+    console.log("Requests in file: ", requests);
+
+    // 4th creates tests based on request values of array requests
+    // builds test files
+    const controllerName = controller.substring(0, controller.indexOf('.'));
+
+    let tests: string = '';
+    requests.forEach(request => {
+      const _tests = helper.tests(request.call, request.route);
+      _tests.forEach(test => {
+        tests = tests.concat(test.toString());
+      });
+    });
+
+    const testFile = helper.fileBuild(controllerName, tests);
+    createTestFiles(controller, testFile);
+  }
 
   return;
 }
 
 export const updater = () => {
-  /*
-    recreates test files on "__tests__" folder based on controllers
-  */
+  /* recreates test files on "__tests__" folder based on controllers */
   cleaner();
   builder();
-  return `All test files have been recreated.`;
+  return;
 }
 
 export const runner = () => {
-  /*
-    runs tests
-  */
+  /* runs tests */
   exec('npm test');
   return;
 }
 
 
-// const greetings = Greeter("Pedro");
-// console.log(greetings);
-// const folder = exec('pwd');
-// console.log("Current folder: "+folder);
-// const output = exec('ls');
-// console.log("Folder files: ", output);
-
+// testing the file
 const isIt = updater();
-
-// runner();
