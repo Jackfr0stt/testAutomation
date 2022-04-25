@@ -162,15 +162,16 @@ const before = (repositoryList: string[]) => {
   repositoryList.forEach(repository => {
     // only an example:
     // need to check repository relations and datasource used for specific repository
-    const repositoryRelations = [`geoRepository`];
-    // const datasource = 'DbDataSource';
+    const repositoryRelations = repRelations(repository);
     const datasource = repDatasource(repository);
 
     let addNewRepositoryEntry = `${lowercaseFirstLetter(repository)} = new ${repository}(${lowercaseFirstLetter(datasource)}`;
-    repositoryRelations.forEach(repository => {
-      const fromValue = `, Getter.fromValue(${lowercaseFirstLetter(repository)})`;
-      addNewRepositoryEntry = addNewRepositoryEntry.concat(fromValue);
-    });
+    if (repositoryRelations) {
+      repositoryRelations.forEach(repository => {
+        const fromValue = `, Getter.fromValue(${lowercaseFirstLetter(repository)})`;
+        addNewRepositoryEntry = addNewRepositoryEntry.concat(fromValue);
+      });
+    }
     const closeAddNewRepositoryEntry = `);\r\n`;
     addNewRepositoryEntry = addNewRepositoryEntry.concat(closeAddNewRepositoryEntry);
 
@@ -186,11 +187,20 @@ const before = (repositoryList: string[]) => {
   return setupBefore;
 }
 
-const repRelations = () => {
-  let repositories: string[] = [];
+const repRelations = (repository: string) => {
+  let relations: string[] = [];
   /* fetches repositories from model */
+  const rep = repository.substring(0, repository.indexOf('R'));
+  const ds = fs.readFileSync(`${config.repositoriesPath}/${rep}.repository.ts`, "utf-8");
+  const lines = ds.split("\n");
+  for (let line of lines) {
+    if (line.includes('@repository.getter')) {
+      const relation = line.split('"')[1].trim();
+      relations.push(lowercaseFirstLetter(relation));
+    }
+  }
 
-  return repositories;
+  return relations;
 }
 
 const repDatasource = (repository: string) => {
@@ -201,12 +211,16 @@ const repDatasource = (repository: string) => {
   const lines = ds.split("\n");
   for (let line of lines) {
     if (line.includes('@inject')) {
-      // TODO: maybe a better way to do it later?
+      console.log(line.split(/[\:\)]/));
       datasource = line.split(/[\:\)]/)[2].trim();
+      if (datasource.includes(',')) {
+        datasource = datasource.substring(0, datasource.indexOf(','));
+      }
       datasource = lowercaseFirstLetter(datasource);
     }
   }
 
+  console.log(datasource);
   return datasource;
 }
 

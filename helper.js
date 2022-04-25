@@ -130,14 +130,15 @@ var before = function (repositoryList) {
     repositoryList.forEach(function (repository) {
         // only an example:
         // need to check repository relations and datasource used for specific repository
-        var repositoryRelations = ["geoRepository"];
-        // const datasource = 'DbDataSource';
+        var repositoryRelations = repRelations(repository);
         var datasource = repDatasource(repository);
         var addNewRepositoryEntry = "".concat(lowercaseFirstLetter(repository), " = new ").concat(repository, "(").concat(lowercaseFirstLetter(datasource));
-        repositoryRelations.forEach(function (repository) {
-            var fromValue = ", Getter.fromValue(".concat(lowercaseFirstLetter(repository), ")");
-            addNewRepositoryEntry = addNewRepositoryEntry.concat(fromValue);
-        });
+        if (repositoryRelations) {
+            repositoryRelations.forEach(function (repository) {
+                var fromValue = ", Getter.fromValue(".concat(lowercaseFirstLetter(repository), ")");
+                addNewRepositoryEntry = addNewRepositoryEntry.concat(fromValue);
+            });
+        }
         var closeAddNewRepositoryEntry = ");\r\n";
         addNewRepositoryEntry = addNewRepositoryEntry.concat(closeAddNewRepositoryEntry);
         repositoriesToAdd = repositoriesToAdd.concat(addNewRepositoryEntry);
@@ -148,10 +149,20 @@ var before = function (repositoryList) {
     setupBefore = setupBefore.concat(closeSetupBefore);
     return setupBefore;
 };
-var repRelations = function () {
-    var repositories = [];
+var repRelations = function (repository) {
+    var relations = [];
     /* fetches repositories from model */
-    return repositories;
+    var rep = repository.substring(0, repository.indexOf('R'));
+    var ds = fs.readFileSync("".concat(config.repositoriesPath, "/").concat(rep, ".repository.ts"), "utf-8");
+    var lines = ds.split("\n");
+    for (var _i = 0, lines_1 = lines; _i < lines_1.length; _i++) {
+        var line = lines_1[_i];
+        if (line.includes('@repository.getter')) {
+            var relation = line.split('"')[1].trim();
+            relations.push(lowercaseFirstLetter(relation));
+        }
+    }
+    return relations;
 };
 var repDatasource = function (repository) {
     var datasource = '';
@@ -159,18 +170,18 @@ var repDatasource = function (repository) {
     var rep = repository.substring(0, repository.indexOf('R'));
     var ds = fs.readFileSync("".concat(config.repositoriesPath, "/").concat(rep, ".repository.ts"), "utf-8");
     var lines = ds.split("\n");
-    for (var _i = 0, lines_1 = lines; _i < lines_1.length; _i++) {
-        var line = lines_1[_i];
+    for (var _i = 0, lines_2 = lines; _i < lines_2.length; _i++) {
+        var line = lines_2[_i];
         if (line.includes('@inject')) {
-            // TODO: this should be doable with only 1 line?
-            // datasource = line.split(': ')[1];
-            // datasource = datasource.split(')')[1];
+            console.log(line.split(/[\:\)]/));
             datasource = line.split(/[\:\)]/)[2].trim();
+            if (datasource.includes(',')) {
+                datasource = datasource.substring(0, datasource.indexOf(','));
+            }
             datasource = lowercaseFirstLetter(datasource);
-            // console.log("HEY: ", line.split(/[\:\s\)]/));
-            console.log(datasource);
         }
     }
+    console.log(datasource);
     return datasource;
 };
 var tests = function (call, route) {

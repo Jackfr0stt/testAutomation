@@ -15,7 +15,7 @@ describe('TestController', function () {
   before('setupApplication', async () => {
     ({ app, client } = await setupApplication());
     const dbDataSource = new DbDataSource;
-    todoRepository = new TodoRepository(dbDataSource, Getter.fromValue(geoRepository));
+    todoRepository = new TodoRepository(dbDataSource, Getter.fromValue(patientsRepository), Getter.fromValue(templatesElementsRepository), Getter.fromValue(pagesElementsRepository));
   });
 
   describe('Testing POST /tests', () => {
