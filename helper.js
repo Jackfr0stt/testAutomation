@@ -1,6 +1,35 @@
 "use strict";
 exports.__esModule = true;
 exports.tests = exports.fileBuild = exports.imports = void 0;
+/*
+  as is:
+    TODO:
+      - before() and after() need to be created for each test file
+        TODO before():
+          - sets up application creates basic information to setup the app + creates data needed for tests
+        TODO after():
+          - deletes every created instance in before() that wont be used anymore
+
+    DOING:
+      - creating only the success test for ALL requests (GET, POST, PATCH, PUT, DEL)
+        TODO:
+          - before() and after() need to be created for each test describe
+          - need to create the instancies in the repositories previously or else the test wont work, this should be done inside before()
+          - also need to fix route cases for when it's depending on certain request values
+            example:
+              - for patch requests of type /test/{id}, we need an actual id. it needs to be of type /test/id, where id has a previously created value
+              - this works for id and other stuff if they exist. all we know is that this instances will be encapsulated in "{}" so the strig.split() should work once again
+*/
+var fs = require("fs");
+var config = require("./config");
+// uppercase only the first letter of the string
+var uppercaseFirstLetter = function (string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+};
+// lowercase only the first letter of the string
+var lowercaseFirstLetter = function (string) {
+    return string.charAt(0).toLowerCase() + string.slice(1);
+};
 /* creates test files input */
 var service = function () {
     // TODO: fetch serviceName through application.ts file. it will be a line containing "class {{service name}}" OR it might be obtained through config.ts file
@@ -9,20 +38,45 @@ var service = function () {
     return serviceName;
 };
 var datasources = function () {
-    // TODO: populate datasource list by fetching the datasources in datasources folder
-    // for this example let it be as below
-    // const datasourceList = 'MoodbusterDataSource';
-    var datasourceList = ['MoodbusterDataSource'];
+    // populates datasource list by fetching the files in datasources folder
+    var datasourceList = [];
+    var datasources = fs.readdirSync(config.datasourcesPath);
+    datasources.forEach(function (datasource) {
+        if (datasource !== 'index.ts') {
+            datasource = datasource.substring(0, datasource.indexOf('.'));
+            datasource = datasource.concat('DataSource');
+            console.log(datasource);
+            datasource = uppercaseFirstLetter(datasource);
+            datasourceList.push(datasource);
+        }
+    });
     return datasourceList;
 };
 var repositories = function () {
-    // TODO: populate repository list by fetching the repositories in repositories folder
+    // populates repository list by fetching the files in repositories folder
     var repositoryList = [];
+    var repositories = fs.readdirSync(config.repositoriesPath);
+    repositories.forEach(function (repository) {
+        if (repository !== 'index.ts') {
+            repository = repository.substring(0, repository.indexOf('.'));
+            repository = repository.concat('Repository');
+            repository = uppercaseFirstLetter(repository);
+            repositoryList.push(repository);
+        }
+    });
     return repositoryList;
 };
 var models = function () {
-    // TODO: populate model list by fetching the models in models folder
+    // populatse model list by fetching the files in models folder
     var modelList = [];
+    var models = fs.readdirSync(config.modelsPath);
+    models.forEach(function (model) {
+        if (model !== 'index.ts') {
+            model = model.substring(0, model.indexOf('.'));
+            model = uppercaseFirstLetter(model);
+            modelList.push(model);
+        }
+    });
     return modelList;
 };
 var serviceName = service();
@@ -30,24 +84,26 @@ var repositoryList = repositories();
 var datasourceList = datasources();
 var modelList = models();
 var imports = function () {
-    var importList = "  import { Client, expect } from \"@loopback/testlab\"\r\n  import { ".concat(serviceName, " } from \"../..\"\r\n  import { setupApplication } from \"./test-helper\"\r\n  import { ").concat(repositoryList, " } from \"../../repositories\";\r\n  import { ").concat(datasourceList, " } from \"../../datasources\";\r\n  import { ").concat(modelList, " } from \"../../models\";\r\n  import fs from \"fs\";\r\n  \n");
+    var importList = "  import { Client, expect } from \"@loopback/testlab\";\r\n  import { ".concat(serviceName, " } from \"../..\";\r\n  import { setupApplication } from \"./test-helper\";\r\n  import { ").concat(repositoryList, " } from \"../../repositories\";\r\n  import { ").concat(datasourceList, " } from \"../../datasources\";\r\n  import { ").concat(modelList, " } from \"../../models\";\r\n  import fs from \"fs\";\r\n  \n");
     return importList;
 };
 exports.imports = imports;
 var fileBuild = function (controller, tests) {
     var testFile = (0, exports.imports)();
-    var openSetup = "  describe('".concat(controller, "Controller', function () {\r\n    this.timeout(10000);\r\n    let app: ").concat(serviceName, ";\r\n    let client: Client;\r\n");
+    var openSetup = "  describe('".concat(uppercaseFirstLetter(controller), "Controller', function () {\r\n    this.timeout(10000);\r\n    let app: ").concat(serviceName, ";\r\n    let client: Client;\r\n");
     testFile = testFile.concat(openSetup);
-    repositoryList.forEach(function (repository) {
-        var addNewRepositoryEntry = "let ".concat(repository, ": ").concat(repository, ";\r\n");
-        testFile = testFile.concat(addNewRepositoryEntry);
-    });
     /*
       create variables
     */
+    repositoryList.forEach(function (repository) {
+        var addNewRepositoryEntry = "let ".concat(lowercaseFirstLetter(repository), ": ").concat(repository, ";\r\n");
+        testFile = testFile.concat(addNewRepositoryEntry);
+    });
+    // TODO: missing data objects
     /*
       create setup before()
     */
+    console.log("Repository list: ", repositoryList);
     var setupBefore = before(repositoryList);
     testFile = testFile.concat(setupBefore);
     /*
@@ -65,30 +121,57 @@ var before = function (repositoryList) {
     /* adds datasources */
     var datasourcesToAdd = '';
     datasourceList.forEach(function (datasource) {
-        var addNewDatasourceEntry = "let ".concat(datasource, " = new ").concat(datasource, ";\r\n");
+        var addNewDatasourceEntry = "const ".concat(lowercaseFirstLetter(datasource), " = new ").concat(datasource, ";\r\n");
         datasourcesToAdd = datasourcesToAdd.concat(addNewDatasourceEntry);
     });
+    setupBefore = setupBefore.concat(datasourcesToAdd);
     /* adds repositories */
     var repositoriesToAdd = '';
     repositoryList.forEach(function (repository) {
-        ////////////////////////////////////////////////
-        // TODO: check relations and datasources used //
-        ////////////////////////////////////////////////
-        // repository relations OR arguments on class.. need to check best option later
         // only an example:
+        // need to check repository relations and datasource used for specific repository
         var repositoryRelations = ["geoRepository"];
-        var addNewRepositoryEntry = "let ".concat(repository, " = new ").concat(repository, "(").concat(datasourceList[0]);
+        // const datasource = 'DbDataSource';
+        var datasource = repDatasource(repository);
+        var addNewRepositoryEntry = "".concat(lowercaseFirstLetter(repository), " = new ").concat(repository, "(").concat(lowercaseFirstLetter(datasource));
         repositoryRelations.forEach(function (repository) {
-            var fromValue = ", Getter.fromValue(".concat(repository, ")");
+            var fromValue = ", Getter.fromValue(".concat(lowercaseFirstLetter(repository), ")");
             addNewRepositoryEntry = addNewRepositoryEntry.concat(fromValue);
         });
         var closeAddNewRepositoryEntry = ");\r\n";
         addNewRepositoryEntry = addNewRepositoryEntry.concat(closeAddNewRepositoryEntry);
         repositoriesToAdd = repositoriesToAdd.concat(addNewRepositoryEntry);
     });
+    setupBefore = setupBefore.concat(repositoriesToAdd);
+    /* adds data objects */
     var closeSetupBefore = "});\r\n\n";
     setupBefore = setupBefore.concat(closeSetupBefore);
     return setupBefore;
+};
+var repRelations = function () {
+    var repositories = [];
+    /* fetches repositories from model */
+    return repositories;
+};
+var repDatasource = function (repository) {
+    var datasource = '';
+    /* fetches datasource from model */
+    var rep = repository.substring(0, repository.indexOf('R'));
+    var ds = fs.readFileSync("".concat(config.repositoriesPath, "/").concat(rep, ".repository.ts"), "utf-8");
+    var lines = ds.split("\n");
+    for (var _i = 0, lines_1 = lines; _i < lines_1.length; _i++) {
+        var line = lines_1[_i];
+        if (line.includes('@inject')) {
+            // TODO: this should be doable with only 1 line?
+            // datasource = line.split(': ')[1];
+            // datasource = datasource.split(')')[1];
+            datasource = line.split(/[\:\)]/)[2].trim();
+            datasource = lowercaseFirstLetter(datasource);
+            // console.log("HEY: ", line.split(/[\:\s\)]/));
+            console.log(datasource);
+        }
+    }
+    return datasource;
 };
 var tests = function (call, route) {
     var tests = [];

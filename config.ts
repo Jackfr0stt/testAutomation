@@ -9,5 +9,5 @@ export const unitPath = "unit";
 
 export const controllersPath = "src/controllers";
 export const modelsPath = "src/models";
-export const repositories = "src/repositories";
-export const datasources = "src/datasources";
+export const repositoriesPath = "src/repositories";
+export const datasourcesPath = "src/datasources";

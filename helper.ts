@@ -20,6 +20,16 @@
 import fs = require('fs');
 import config = require('./config');
 
+// uppercase only the first letter of the string
+const uppercaseFirstLetter = (string: string) => {
+  return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+// lowercase only the first letter of the string
+const lowercaseFirstLetter = (string: string) => {
+  return string.charAt(0).toLowerCase() + string.slice(1);
+}
+
 /* creates test files input */
 const service = () => {
   // TODO: fetch serviceName through application.ts file. it will be a line containing "class {{service name}}" OR it might be obtained through config.ts file
@@ -29,22 +39,50 @@ const service = () => {
 }
 
 const datasources = () => {
-  // TODO: populate datasource list by fetching the datasources in datasources folder
-  // for this example let it be as below
-  // const datasourceList = 'MoodbusterDataSource';
-  const datasourceList: string[] = ['MoodbusterDataSource'];
+  // populates datasource list by fetching the files in datasources folder
+  const datasourceList: string[] = [];
+  const datasources = fs.readdirSync(config.datasourcesPath);
+  datasources.forEach(datasource => {
+    if (datasource !== 'index.ts') {
+      datasource = datasource.substring(0, datasource.indexOf('.'));
+      datasource = datasource.concat('DataSource');
+      console.log(datasource);
+      datasource = uppercaseFirstLetter(datasource);
+      datasourceList.push(datasource);
+    }
+  });
+
   return datasourceList;
 }
 
 const repositories = () => {
-  // TODO: populate repository list by fetching the repositories in repositories folder
+  // populates repository list by fetching the files in repositories folder
   const repositoryList: string[] = [];
+  const repositories = fs.readdirSync(config.repositoriesPath);
+  repositories.forEach(repository => {
+    if (repository !== 'index.ts') {
+      repository = repository.substring(0, repository.indexOf('.'));
+      repository = repository.concat('Repository');
+      repository = uppercaseFirstLetter(repository);
+      repositoryList.push(repository);
+    }
+  });
+
   return repositoryList;
 }
 
 const models = () => {
-  // TODO: populate model list by fetching the models in models folder
+  // populatse model list by fetching the files in models folder
   const modelList: string[] = [];
+  const models = fs.readdirSync(config.modelsPath);
+  models.forEach(model => {
+    if (model !== 'index.ts') {
+      model = model.substring(0, model.indexOf('.'));
+      model = uppercaseFirstLetter(model);
+      modelList.push(model);
+    }
+  });
+
   return modelList;
 }
 
@@ -55,9 +93,9 @@ const modelList = models();
 
 export const imports = () => {
   let importList = `\
-  import { Client, expect } from "@loopback/testlab"\r\n\
-  import { ${serviceName} } from "../.."\r\n\
-  import { setupApplication } from "./test-helper"\r\n\
+  import { Client, expect } from "@loopback/testlab";\r\n\
+  import { ${serviceName} } from "../..";\r\n\
+  import { setupApplication } from "./test-helper";\r\n\
   import { ${repositoryList} } from "../../repositories";\r\n\
   import { ${datasourceList} } from "../../datasources";\r\n\
   import { ${modelList} } from "../../models";\r\n\
@@ -71,26 +109,28 @@ export const fileBuild = (controller: string, tests: string) => {
   let testFile: string = imports();
 
   let openSetup = `\
-  describe('${controller}Controller', function () {\r\n\
+  describe('${uppercaseFirstLetter(controller)}Controller', function () {\r\n\
     this.timeout(10000);\r\n\
     let app: ${serviceName};\r\n\
     let client: Client;\r\n`;
   testFile = testFile.concat(openSetup);
 
-  repositoryList.forEach(repository => {
-    const addNewRepositoryEntry = `let ${repository}: ${repository};\r\n`;
-    testFile = testFile.concat(addNewRepositoryEntry);
-  });
-
   /*
     create variables
   */
+  repositoryList.forEach(repository => {
+    const addNewRepositoryEntry = `let ${lowercaseFirstLetter(repository)}: ${repository};\r\n`;
+    testFile = testFile.concat(addNewRepositoryEntry);
+  });
+  // TODO: missing data objects
 
   /*
     create setup before()
   */
+  console.log("Repository list: ", repositoryList);
   const setupBefore = before(repositoryList);
   testFile = testFile.concat(setupBefore);
+
   /*
     create setup after()
   */
@@ -112,24 +152,23 @@ const before = (repositoryList: string[]) => {
   /* adds datasources */
   let datasourcesToAdd: string = '';
   datasourceList.forEach(datasource => {
-    const addNewDatasourceEntry = `let ${datasource} = new ${datasource};\r\n`;
+    const addNewDatasourceEntry = `const ${lowercaseFirstLetter(datasource)} = new ${datasource};\r\n`;
     datasourcesToAdd = datasourcesToAdd.concat(addNewDatasourceEntry);
   });
+  setupBefore = setupBefore.concat(datasourcesToAdd);
 
   /* adds repositories */
   let repositoriesToAdd: string = '';
   repositoryList.forEach(repository => {
-    ////////////////////////////////////////////////
-    // TODO: check relations and datasources used //
-    ////////////////////////////////////////////////
-
-    // repository relations OR arguments on class.. need to check best option later
     // only an example:
+    // need to check repository relations and datasource used for specific repository
     const repositoryRelations = [`geoRepository`];
+    // const datasource = 'DbDataSource';
+    const datasource = repDatasource(repository);
 
-    let addNewRepositoryEntry = `let ${repository} = new ${repository}(${datasourceList[0]}`;
+    let addNewRepositoryEntry = `${lowercaseFirstLetter(repository)} = new ${repository}(${lowercaseFirstLetter(datasource)}`;
     repositoryRelations.forEach(repository => {
-      const fromValue = `, Getter.fromValue(${repository})`;
+      const fromValue = `, Getter.fromValue(${lowercaseFirstLetter(repository)})`;
       addNewRepositoryEntry = addNewRepositoryEntry.concat(fromValue);
     });
     const closeAddNewRepositoryEntry = `);\r\n`;
@@ -137,11 +176,38 @@ const before = (repositoryList: string[]) => {
 
     repositoriesToAdd = repositoriesToAdd.concat(addNewRepositoryEntry);
   });
+  setupBefore = setupBefore.concat(repositoriesToAdd);
+
+  /* adds data objects */
 
   const closeSetupBefore = `});\r\n\n`;
   setupBefore = setupBefore.concat(closeSetupBefore);
 
   return setupBefore;
+}
+
+const repRelations = () => {
+  let repositories: string[] = [];
+  /* fetches repositories from model */
+
+  return repositories;
+}
+
+const repDatasource = (repository: string) => {
+  let datasource: string = '';
+  /* fetches datasource from model */
+  const rep = repository.substring(0, repository.indexOf('R'));
+  const ds = fs.readFileSync(`${config.repositoriesPath}/${rep}.repository.ts`, "utf-8");
+  const lines = ds.split("\n");
+  for (let line of lines) {
+    if (line.includes('@inject')) {
+      // TODO: maybe a better way to do it later?
+      datasource = line.split(/[\:\)]/)[2].trim();
+      datasource = lowercaseFirstLetter(datasource);
+    }
+  }
+
+  return datasource;
 }
 
 export const tests = (call: string, route: string) => {

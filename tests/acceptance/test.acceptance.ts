@@ -1,18 +1,21 @@
-import { Client, expect } from "@loopback/testlab"
-import { TodoListApplication } from "../.."
-import { setupApplication } from "./test-helper"
-import { } from "../../repositories";
-import { MoodbusterDataSource } from "../../datasources";
-import { } from "../../models";
+import { Client, expect } from "@loopback/testlab";
+import { TodoListApplication } from "../..";
+import { setupApplication } from "./test-helper";
+import { TodoRepository } from "../../repositories";
+import { DbDataSource } from "../../datasources";
+import { Todo } from "../../models";
 import fs from "fs";
 
-describe('testController', function () {
+describe('TestController', function () {
   this.timeout(10000);
   let app: TodoListApplication;
   let client: Client;
+  let todoRepository: TodoRepository;
 
   before('setupApplication', async () => {
     ({ app, client } = await setupApplication());
+    const dbDataSource = new DbDataSource;
+    todoRepository = new TodoRepository(dbDataSource, Getter.fromValue(geoRepository));
   });
 
   describe('Testing POST /tests', () => {

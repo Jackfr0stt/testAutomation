@@ -1,6 +1,6 @@
 "use strict";
 exports.__esModule = true;
-exports.datasources = exports.repositories = exports.modelsPath = exports.controllersPath = exports.unitPath = exports.integrationPath = exports.acceptancePath = exports.testsFolderPath = exports.project = void 0;
+exports.datasourcesPath = exports.repositoriesPath = exports.modelsPath = exports.controllersPath = exports.unitPath = exports.integrationPath = exports.acceptancePath = exports.testsFolderPath = exports.project = void 0;
 exports.project = "Test Project";
 // export const testsFolderPath="../src/__tests__/__tests__/";
 exports.testsFolderPath = "tests";
@@ -9,5 +9,5 @@ exports.integrationPath = "integration";
 exports.unitPath = "unit";
 exports.controllersPath = "src/controllers";
 exports.modelsPath = "src/models";
-exports.repositories = "src/repositories";
-exports.datasources = "src/datasources";
+exports.repositoriesPath = "src/repositories";
+exports.datasourcesPath = "src/datasources";

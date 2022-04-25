@@ -47,6 +47,9 @@ export const builder = () => {
     fs.writeFile(`${config.testsFolderPath}/${config.integrationPath}/${test}.integration.ts`, info, callback);
     /* writes unit test file */
     fs.writeFile(`${config.testsFolderPath}/${config.unitPath}/${test}.unit.ts`, info, callback);
+
+    // /* re-write files with prettier */
+    // exec('prettier --write "src/tests/*"');
   }
 
   for (const controller of controllers) {
