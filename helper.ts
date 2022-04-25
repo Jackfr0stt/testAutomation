@@ -160,8 +160,6 @@ const before = (repositoryList: string[]) => {
   /* adds repositories */
   let repositoriesToAdd: string = '';
   repositoryList.forEach(repository => {
-    // only an example:
-    // need to check repository relations and datasource used for specific repository
     const repositoryRelations = repRelations(repository);
     const datasource = repDatasource(repository);
 
